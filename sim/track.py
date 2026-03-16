@@ -1,11 +1,15 @@
 import numpy as np
 import pygame
 import fastf1
+import math
 
 
 class Track:
-    def __init__(self, track_name):
+    def __init__(self, track_name, lap_ready, lap_start_time, last_lap_time):
         self.track_name = track_name
+        self.lap_ready = False
+        self.lap_start_time = 0
+        self.last_lap_time = 0
 
     def load_track(self):
         session = fastf1.get_session(2023, self.track_name, "Q")
@@ -51,3 +55,18 @@ class Track:
         pygame.draw.lines(surface, (255, 255, 255), True, inner_points)
         pygame.draw.lines(surface, (255, 255, 255), True, outer_points)
 
+    def check_lap(self, car):
+        dx = car.x - self.x[0]
+        dy = car.y - self.y[0]
+        distance = math.sqrt(dx**2 + dy**2)
+        if (distance < 20) and self.lap_ready :
+
+            print("Lap Finished")
+            current_time = pygame.time.get_ticks()
+            self.last_lap_time = current_time - self.lap_start_time
+            self.lap_start_time = current_time
+            print(self.last_lap_time/1000)
+            self.lap_ready = False
+        
+        if (distance > 50):
+            self.lap_ready = True
