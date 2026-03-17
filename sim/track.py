@@ -12,7 +12,7 @@ class Track:
         self.last_lap_time = 0
 
     def load_track(self):
-        session = fastf1.get_session(2023, self.track_name, "Q")
+        session = fastf1.get_session(2025, self.track_name, "Q")
         session.load()
 
         fastest_lap = session.laps.pick_fastest()
@@ -21,7 +21,11 @@ class Track:
         self.x = telemetry["X"].values
         self.y = telemetry["Y"].values
 
+       
+
     def transform(self, screen_width, screen_height):
+        self.x = self.x[::-1]
+        self.y = self.y[::-1]
         self.x = self.x - np.min(self.x)
         self.y = self.y - np.min(self.y)
 
@@ -42,10 +46,15 @@ class Track:
 
         width = 15
 
-        self.outer_x = self.x[:-1] - perp_x * width
-        self.outer_y = self.y[:-1] - perp_y * width
-        self.inner_x = self.x[:-1] + perp_x * width
-        self.inner_y = self.y[:-1] + perp_y * width
+        self.outer_x = self.x[:-1] + perp_x * width
+        self.outer_y = self.y[:-1] + perp_y * width
+        self.inner_x = self.x[:-1] - perp_x * width
+        self.inner_y = self.y[:-1] - perp_y * width
+
+        from matplotlib.path import Path
+        self.outer_path = Path(list(zip(self.outer_x, self.outer_y)))
+        self.inner_path = Path(list(zip(self.inner_x, self.inner_y)))
+
 
     def draw(self, surface):
         points = list(zip(self.x, self.y))
