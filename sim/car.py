@@ -117,7 +117,7 @@ class Car:
         obs[8] = self.cast_ray(track, 90, 200)
         obs[9] = self.cast_ray(track, -45, 200)
         obs[10] = self.cast_ray(track, 45, 200)
-        obs[11] = 0
+        obs[11] = track.get_progress(self) / len(track.x)
         obs[12] = 0
 
         return obs

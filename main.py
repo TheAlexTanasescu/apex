@@ -29,13 +29,13 @@ def main():
             spawn_index = i
             break
 
-    print(f"Spawning at index {spawn_index}, valid: {track.outer_path.contains_point((track.x[spawn_index], track.y[spawn_index]))}")
+    #print(f"Spawning at index {spawn_index}, valid: {track.outer_path.contains_point((track.x[spawn_index], track.y[spawn_index]))}")
 
     dx = track.x[spawn_index + 1] - track.x[spawn_index]
     dy = track.y[spawn_index + 1] - track.y[spawn_index]
     car_angle = math.degrees(math.atan2(dy, dx))
     car = Car(track.x[spawn_index], track.y[spawn_index], 0, car_angle, SCREEN_WIDTH, SCREEN_HEIGHT)
-    print(track.outer_path.contains_point((car.x, car.y)))
+    #print(track.outer_path.contains_point((car.x, car.y)))
 
     agent = HeuristicAgent()
 

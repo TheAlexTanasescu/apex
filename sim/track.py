@@ -79,3 +79,17 @@ class Track:
         
         if (distance > 50):
             self.lap_ready = True
+
+    def get_progress(self, car):
+        min_dist = float('inf')
+        closest_index = 0
+        
+        for i in range(len(self.x) - 1):
+            dx = car.x - self.x[i]
+            dy = car.y - self.y[i]
+            dist = math.sqrt(dx**2 + dy**2)
+            if dist < min_dist:
+                min_dist = dist
+                closest_index = i
+        
+        return closest_index
