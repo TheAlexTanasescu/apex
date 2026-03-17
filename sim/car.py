@@ -42,65 +42,69 @@ class Car:
             if keys[pygame.K_RIGHT]:
                 self.angle += 1
 
+        self.speed = min(self.speed, 3)
+
         self.x -= self.speed * math.cos(math.radians(self.angle + 90))
         self.y -= self.speed * math.sin(math.radians(self.angle + 90))
 
-        self.speed = min(self.speed, 3)
+        
         self.speed = self.speed * 0.95
 
+        self.check_and_clamp(track)
         self.check_and_clamp(track)
 
     def check_and_clamp(self, track):
         if self.spawn_frames > 0:
             self.spawn_frames -= 1
             return
-
+            
         if self.check_collision(track):
-            min_dist = float("inf")
+            min_dist = float('inf')
             nearest_x, nearest_y = self.x, self.y
-
-            for i in range(len(track.outer_x)):
-                dx = self.x - track.outer_x[i]
-                dy = self.y - track.outer_y[i]
+            
+            for i in range(len(track.x) - 1):
+                dx = self.x - track.x[i]
+                dy = self.y - track.y[i]
                 dist = math.sqrt(dx**2 + dy**2)
                 if dist < min_dist:
                     min_dist = dist
-                    nearest_x = track.outer_x[i]
-                    nearest_y = track.outer_y[i]
-
-            for i in range(len(track.inner_x)):
-                dx = self.x - track.inner_x[i]
-                dy = self.y - track.inner_y[i]
-                dist = math.sqrt(dx**2 + dy**2)
-                if dist < min_dist:
-                    min_dist = dist
-                    nearest_x = track.inner_x[i]
-                    nearest_y = track.inner_y[i]
-
+                    nearest_x = track.x[i]
+                    nearest_y = track.y[i]
+            
             self.x = nearest_x
             self.y = nearest_y
             self.speed *= -0.3
 
     def check_collision(self, track):
-        car_pos = (self.x, self.y)
-        inside_outer = track.outer_path.contains_point(car_pos)
-        inside_inner = track.inner_path.contains_point(car_pos)
-        if not inside_outer or inside_inner:
-            return True
-        return False
+        min_dist = float('inf')
+        for i in range(len(track.x) - 1):
+            dx = self.x - track.x[i]
+            dy = self.y - track.y[i]
+            dist = math.sqrt(dx**2 + dy**2)
+            if dist < min_dist:
+                min_dist = dist
+    
+        return min_dist > track.width
 
     def cast_ray(self, track, angle_offset, max_distance):
         ray_angle = math.radians(self.angle + angle_offset)
 
-        for dist in range(1, max_distance):
-            rx = self.x + dist * math.cos(ray_angle)
-            ry = self.y + dist * math.sin(ray_angle)
-
-            if not track.outer_path.contains_point(
-                (rx, ry)
-            ) or track.inner_path.contains_point((rx, ry)):
-                return dist / max_distance
-
+    
+    
+        dists = np.arange(1, max_distance)
+        rx = self.x + dists * math.cos(ray_angle)
+        ry = self.y + dists * math.sin(ray_angle)
+        
+        cx = track.x[:-1]
+        cy = track.y[:-1]
+        
+        for i, (rpx, rpy) in enumerate(zip(rx, ry)):
+            diff_x = rpx - cx
+            diff_y = rpy - cy
+            min_dist = np.min(np.sqrt(diff_x**2 + diff_y**2))
+            if min_dist > track.width:
+                return dists[i] / max_distance
+        
         return 1.0
 
     def get_observation(self, track):
@@ -112,11 +116,11 @@ class Car:
         obs[3] = math.cos(math.radians(self.angle))
         obs[4] = math.sin(math.radians(self.angle))
         obs[5] = 0
-        obs[6] = self.cast_ray(track, 0, 200)
-        obs[7] = self.cast_ray(track, -90, 200)
-        obs[8] = self.cast_ray(track, 90, 200)
-        obs[9] = self.cast_ray(track, -45, 200)
-        obs[10] = self.cast_ray(track, 45, 200)
+        obs[6] = self.cast_ray(track, 0, 50)
+        obs[7] = self.cast_ray(track, -90, 50)
+        obs[8] = self.cast_ray(track, 90, 50)
+        obs[9] = self.cast_ray(track, -45, 50)
+        obs[10] = self.cast_ray(track, 45, 50)
         obs[11] = track.get_progress(self) / len(track.x)
         obs[12] = 0
 

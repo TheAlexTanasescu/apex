@@ -5,7 +5,7 @@ import math
 
 
 class Track:
-    def __init__(self, track_name, lap_ready, lap_start_time, last_lap_time):
+    def __init__(self, track_name):
         self.track_name = track_name
         self.lap_ready = False
         self.lap_start_time = 0
@@ -24,8 +24,6 @@ class Track:
        
 
     def transform(self, screen_width, screen_height):
-        self.x = self.x[::-1]
-        self.y = self.y[::-1]
         self.x = self.x - np.min(self.x)
         self.y = self.y - np.min(self.y)
 
@@ -44,12 +42,18 @@ class Track:
         perp_x = -dy
         perp_y = dx
 
-        width = 15
+        width = 25
+        self.width = 30
 
         self.outer_x = self.x[:-1] + perp_x * width
         self.outer_y = self.y[:-1] + perp_y * width
         self.inner_x = self.x[:-1] - perp_x * width
         self.inner_y = self.y[:-1] - perp_y * width
+
+        self.outer_x = np.append(self.outer_x, self.outer_x[0])
+        self.outer_y = np.append(self.outer_y, self.outer_y[0])
+        self.inner_x = np.append(self.inner_x, self.inner_x[0])
+        self.inner_y = np.append(self.inner_y, self.inner_y[0])
 
         from matplotlib.path import Path
         self.outer_path = Path(list(zip(self.outer_x, self.outer_y)))

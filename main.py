@@ -18,11 +18,11 @@ def main():
 
     
 
-    track = Track("Monza", False, 0, 0)
+    track = Track("Monza")
     track.load_track()
     track.transform(SCREEN_WIDTH, SCREEN_HEIGHT)
 
-    spawn_index = 100  # fallback
+    spawn_index = 0
     for i in range(len(track.x) - 1):
         if track.outer_path.contains_point((track.x[i], track.y[i])) and \
         not track.inner_path.contains_point((track.x[i], track.y[i])):
@@ -39,6 +39,7 @@ def main():
 
     agent = HeuristicAgent()
 
+    clock = pygame.time.Clock()
 
     running = True
     while running:
@@ -51,13 +52,14 @@ def main():
         text = font.render(f"Lap: {track.last_lap_time / 1000:.2f}s", True, (255, 255, 255))
         screen.blit(text, (20, 20))
         obs = car.get_observation(track)
-        action = agent.act(obs, None, 0)
+        action = agent.act(obs, None, pygame.time.get_ticks())
         car.update(None, track, action)
         #keys = pygame.key.get_pressed()
         #car.update(keys, track)
         car.draw(screen)
         #print(car.get_observation(track))
         track.check_lap(car)
+        clock.tick(60)
         pygame.display.flip()
 
     pygame.quit()

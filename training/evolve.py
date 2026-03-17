@@ -1,6 +1,6 @@
 import math
 import numpy as np
-
+import pygame
 
 from agents.base_agent import BaseAgent
 from sim.car import Car
@@ -8,95 +8,8 @@ from sim.track import Track
 
 SCREEN_WIDTH = 1200
 SCREEN_HEIGHT = 800
-MAX_STEPS = 1000
+MAX_STEPS = 500
 
-
-def evaluate_agent(agent, track):
-        print("Evaluating agent...")
-        for i in range(len(track.x) - 1):
-            if track.outer_path.contains_point((track.x[i], track.y[i])) and \
-            not track.inner_path.contains_point((track.x[i], track.y[i])):
-                spawn_index = i
-                break
-
-        dx = track.x[spawn_index + 1] - track.x[spawn_index]
-        dy = track.y[spawn_index + 1] - track.y[spawn_index]
-        car_angle = math.degrees(math.atan2(dy, dx))
-        car = Car(track.x[spawn_index], track.y[spawn_index], 0, car_angle, SCREEN_WIDTH, SCREEN_HEIGHT)
-
-        best_distance = 0
-        lap_completed = False
-        lap_time = 0
-
-        for step in range(MAX_STEPS):
-            obs = car.get_observation(track)
-            action = agent.act(obs, None, step)
-            car.update(None, track, action)
-            
-            distance = track.get_progress(car)
-            max_valid = int(len(track.x) * 0.8)
-            if distance > best_distance and distance < max_valid:
-                best_distance = distance
-            
-            if step > 100 and distance < 10 and best_distance > len(track.x) * 0.9:
-                lap_completed = True
-                break
-        
-            #if step % 100 == 0:
-                #print(f"  step {step}, distance: {distance}")
-
-        if lap_completed:
-           # print(f"Done. Fitness: {-lap_time}, steps survived: {step}")
-            return -lap_time   # negative because lower is better, evolution maximizes
-        else:
-            #print(f"Done. Fitness: {best_distance}, steps survived: {step}")
-            return best_distance
-        
-
-def evolve(track_name, generations, population_size):
-        
-        track = Track(track_name, False, 0, 0)
-        track.load_track()
-        track.transform(SCREEN_WIDTH, SCREEN_HEIGHT)
-
-
-        print("Starting evolution...")
-        # create initial population
-        population = [EvoAgent(name=f"Agent_{i}", color=(255, 255, 255)) for i in range(population_size)]
-
-        for gen in range(generations):
-            # evaluate all agents
-            fitness_scores = [evaluate_agent(agent, track) for agent in population]
-
-            # sort by fitness descending
-            ranked = sorted(zip(fitness_scores, population), key=lambda x: x[0], reverse=True)
-            fitness_scores, population = zip(*ranked)
-            population = list(population)
-
-            best_fitness = fitness_scores[0]
-            print(f"Generation {gen} | Best fitness: {best_fitness:.2f}")
-
-            # keep top 20% as elites
-            elite_count = max(1, population_size // 5)
-            elites = population[:elite_count]
-
-            # breed next generation
-            next_gen = list(elites)
-            while len(next_gen) < population_size:
-                parent = elites[np.random.randint(0, len(elites))]
-                child = EvoAgent(name="child", color=(255, 255, 255))
-                weights = parent.network.get_weights()
-                weights += np.random.randn(len(weights)) * 0.1  # mutate
-                child.network.set_weights(weights)
-                next_gen.append(child)
-
-            population = next_gen
-
-        # save best agent
-        best = population[0]
-        np.save("weights/evo_best.npy", best.network.get_weights())
-        print("Saved best agent to weights/evo_best.npy")
-        return best
 class NeuralNetwork:
     def __init__(self):
         self.W1 = np.random.randn(32, 13) * 0.5
@@ -138,5 +51,145 @@ class EvoAgent(BaseAgent):
 
    
 
+
+def evaluate_agent(agent, track):
+        print("Evaluating agent...")
+        spawn_index = 0
+        for i in range(len(track.x) - 1):
+            dx = track.x[i] - track.x[0]
+            dy = track.y[i] - track.y[0]
+            dist = math.sqrt(dx**2 + dy**2)
+            if dist > 50:
+                spawn_index = i
+                break
+
+        dx = track.x[spawn_index + 1] - track.x[spawn_index]
+        dy = track.y[spawn_index + 1] - track.y[spawn_index]
+        car_angle = math.degrees(math.atan2(dy, dx))
+        car = Car(track.x[spawn_index], track.y[spawn_index], 0, car_angle, SCREEN_WIDTH, SCREEN_HEIGHT)
+
+        spawn_progress = track.get_progress(car)
+        lap_time = 0
+        best_distance = 0
+        lap_completed = False
+        last_progress = spawn_progress
+
+        for step in range(MAX_STEPS):
+            obs = car.get_observation(track)
+            action = agent.act(obs, None, step)
+            car.update(None, track, action)
+            
+            distance = track.get_progress(car)
+            
+            if distance > last_progress and distance < last_progress + 20:
+                best_distance = distance
+                last_progress = distance
+            
+            if step > 100 and distance < spawn_progress + 10 and best_distance > len(track.x) * 0.9:
+                lap_completed = True
+                break
+            
+            #if step % 100 == 0:
+               # print(f"  step {step}, distance: {distance}")
+
+        if lap_completed:
+            print(f"Done. Fitness: {-lap_time}, steps survived: {step}")
+            return -lap_time   # negative because lower is better, evolution maximizes
+        else:
+            print(f"Done. Fitness: {best_distance}, steps survived: {step}")
+            return best_distance
+
+def render_agent(agent, track):
+    pygame.init()
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("Best Agent")
+    clock = pygame.time.Clock()
+    font = pygame.font.SysFont("Arial", 24)
+
+    spawn_index = 0
+    for i in range(len(track.x) - 1):
+        dx = track.x[i] - track.x[0]
+        dy = track.y[i] - track.y[0]
+        dist = math.sqrt(dx**2 + dy**2)
+        if dist > 50:
+            spawn_index = i
+            break
+
+    dx = track.x[spawn_index + 1] - track.x[spawn_index]
+    dy = track.y[spawn_index + 1] - track.y[spawn_index]
+    car_angle = math.degrees(math.atan2(dy, dx))
+    car = Car(track.x[spawn_index], track.y[spawn_index], 0, car_angle, SCREEN_WIDTH, SCREEN_HEIGHT)
+
+    for step in range(MAX_STEPS):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
+
+        obs = car.get_observation(track)
+        action = agent.act(obs, None, step)
+        car.update(None, track, action)
+
+        screen.fill((0, 0, 0))
+        track.draw(screen)
+        car.draw(screen)
+
+        progress = track.get_progress(car)
+        text = font.render(f"Step: {step} | Progress: {progress}", True, (255, 255, 255))
+        screen.blit(text, (20, 20))
+
+        pygame.display.flip()
+        clock.tick(60)
+
+    pygame.quit()   
+
+def evolve(track_name, generations, population_size):
+        
+        track = Track(track_name)
+        track.load_track()
+        track.transform(SCREEN_WIDTH, SCREEN_HEIGHT)
+
+
+        print("Starting evolution...")
+        # create initial population
+        population = [EvoAgent(name=f"Agent_{i}", color=(255, 255, 255)) for i in range(population_size)]
+
+        for gen in range(generations):
+            # evaluate all agents
+            fitness_scores = [evaluate_agent(agent, track) for agent in population]
+
+            # sort by fitness descending
+            ranked = sorted(zip(fitness_scores, population), key=lambda x: x[0], reverse=True)
+            fitness_scores, population = zip(*ranked)
+            population = list(population)
+
+            best_fitness = fitness_scores[0]
+            print(f"Generation {gen} | Best fitness: {best_fitness:.2f}")
+            render_agent(population[0], track)
+
+            
+            elite_count = 1
+            elites = population[:elite_count]
+
+            # breed next generation
+            next_gen = list(elites)
+            while len(next_gen) < population_size:
+                parent = elites[np.random.randint(0, len(elites))]
+                child = EvoAgent(name="child", color=(255, 255, 255))
+                weights = parent.network.get_weights()
+                weights += np.random.randn(len(weights)) * 0.5  # mutate
+                child.network.set_weights(weights)
+                next_gen.append(child)
+
+            population = next_gen
+
+        # save best agent
+        
+        best = population[0]
+        np.save("weights/evo_best.npy", best.network.get_weights())
+        print("Saved best agent to weights/evo_best.npy")
+        return best
+
+
 if __name__ == "__main__":
-    evolve("Monza", generations=50, population_size=10)
+    evolve("Monza", generations=50, population_size=20)
