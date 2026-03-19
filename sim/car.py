@@ -26,7 +26,7 @@ class Car:
         if action and not action.get("playback"):
             self.speed += action["throttle"] * 0.1
             self.speed -= action["brake"] * 0.2
-            self.angle += action["steer"] * 2
+            self.angle += action["steer"] * 4
 
         if action and action.get("playback"):
             self.x = action["x"]
@@ -42,7 +42,7 @@ class Car:
             if keys[pygame.K_RIGHT]:
                 self.angle += 1
 
-        self.speed = min(self.speed, 3)
+        self.speed = self.speed = max(min(self.speed, 2), -2)
 
         self.x -= self.speed * math.cos(math.radians(self.angle + 90))
         self.y -= self.speed * math.sin(math.radians(self.angle + 90))
@@ -115,7 +115,7 @@ class Car:
         obs[2] = self.speed / 5.0
         obs[3] = math.cos(math.radians(self.angle))
         obs[4] = math.sin(math.radians(self.angle))
-        obs[5] = 0
+        obs[5] = track.get_curvature(self)
         obs[6] = self.cast_ray(track, 0, 50)
         obs[7] = self.cast_ray(track, -90, 50)
         obs[8] = self.cast_ray(track, 90, 50)

@@ -97,3 +97,23 @@ class Track:
                 closest_index = i
         
         return closest_index
+
+    def get_curvature(self, car, lookahead=10):
+        idx = self.get_progress(car)
+        if idx + lookahead >= len(self.x) - 1:
+            return 0.0
+        
+        dx1 = self.x[idx + 1] - self.x[idx]
+        dy1 = self.y[idx + 1] - self.y[idx]
+        dx2 = self.x[idx + lookahead] - self.x[idx]
+        dy2 = self.y[idx + lookahead] - self.y[idx]
+        
+        angle1 = math.atan2(dy1, dx1)
+        angle2 = math.atan2(dy2, dx2)
+        
+        curvature = angle2 - angle1
+        # normalize to -1 to 1
+        while curvature > math.pi: curvature -= 2 * math.pi
+        while curvature < -math.pi: curvature += 2 * math.pi
+        
+        return curvature / math.pi
