@@ -9,6 +9,7 @@ import json
 from sim.track import Track
 from sim.car import Car
 from training.evolve import NeuralNetwork, EvoAgent
+from agents.ppo_agent import PPOAgent
 import numpy as np
 
 SCREEN_WIDTH = 1200
@@ -80,10 +81,14 @@ async def handle_client(websocket):
             data = json.loads(message)
             if data["type"] == "join":
                 # load weights into an agent
-                weights = np.array(data["weights"])
-                agent = EvoAgent(name=f"Player_{client_id}", color=(255, 255, 255))
-                agent.network.set_weights(weights)
-                
+            
+                if data["weights_type"] == "evo":
+                    weights = np.array(data["weights"])
+                    agent = EvoAgent(name=f"Player_{client_id}", color=(255, 255, 255))
+                    agent.network.set_weights(weights)
+                else:
+                    agent = PPOAgent(data["weights_path"])
+                                
                 # find spawn position
                 spawn_index = 0
                 for i in range(len(track.x) - 1):
@@ -112,7 +117,7 @@ async def handle_client(websocket):
 
 async def main():
     print("Starting server on ws://localhost:8765")
-    async with websockets.serve(handle_client, "localhost", 8765):
+    async with websockets.serve(handle_client, "0.0.0.0", 8765):
         await race_loop()
 
 if __name__ == "__main__":

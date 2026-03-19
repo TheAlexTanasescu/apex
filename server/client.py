@@ -36,11 +36,23 @@ async def main(weights_path):
     
     async with websockets.connect("ws://localhost:8765") as websocket:
         # send join message with weights
-        await websocket.send(json.dumps({
-            "type": "join",
-            "weights": weights.tolist(),
-            "weights_type": "evo" or "ppo"
-        }))
+        weights_path = sys.argv[1] if len(sys.argv) > 1 else "weights/evo_best.npy"
+
+        if weights_path.endswith(".zip"):
+            # PPO model
+            await websocket.send(json.dumps({
+                "type": "join",
+                "weights_type": "ppo",
+                "weights_path": weights_path
+            }))
+        else:
+            # Evo model
+            weights = np.load(weights_path)
+            await websocket.send(json.dumps({
+                "type": "join",
+                "weights_type": "evo",
+                "weights": weights.tolist()
+            }))
         
         # wait for joined confirmation
         response = json.loads(await websocket.recv())
