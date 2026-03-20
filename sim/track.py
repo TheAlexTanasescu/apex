@@ -43,7 +43,7 @@ class Track:
         perp_y = dx
 
         width = 25
-        self.width = 30
+        self.width = 20
 
         self.outer_x = self.x[:-1] + perp_x * width
         self.outer_y = self.y[:-1] + perp_y * width
@@ -61,9 +61,9 @@ class Track:
 
 
     def draw(self, surface):
-        points = list(zip(self.x, self.y))
-        inner_points = list(zip(self.inner_x, self.inner_y))
-        outer_points = list(zip(self.outer_x, self.outer_y))
+        points = list(zip(self.x + 10, self.y))
+        inner_points = list(zip(self.inner_x + 10, self.inner_y))
+        outer_points = list(zip(self.outer_x + 10, self.outer_y))
         pygame.draw.lines(surface, (255, 0, 0), True, points)
         pygame.draw.lines(surface, (255, 255, 255), True, inner_points)
         pygame.draw.lines(surface, (255, 255, 255), True, outer_points)

@@ -58,6 +58,7 @@ class RacingEnv(gym.Env):
         reward = 0
         if new_progress > prev_progress and new_progress < prev_progress + 20:
             reward += new_progress - prev_progress  # forward progress
+            
         if self.car.check_collision(self.track):
             reward -= 1  # wall hit penalty
         if self.car.speed < 0:
@@ -69,4 +70,4 @@ class RacingEnv(gym.Env):
             terminated = True  # completed lap
         
         obs = self.car.get_observation(self.track)
-        return obs, reward, terminated, False, {}
+        return obs, reward, terminated, False, {} 

@@ -58,12 +58,12 @@ def render_ppo(model_path, track_name):
     
     pygame.quit()
 
-render_ppo("weights/ppo_agent", "Monza")
+#render_ppo("weights/ppo_agent", "Monza")
 
-#race_env = RacingEnv("Monza")
-#model = PPO.load("weights/ppo_agent", env=race_env)
-#model.learn(total_timesteps=1500000)
-#model.save("weights/ppo_agent")
+race_env = RacingEnv("Monza")
+model = PPO.load("weights/ppo_agent", env=race_env)
+model.learn(total_timesteps=200000)
+model.save("weights/ppo_agent")
 
 #model = PPO("MlpPolicy", race_env, verbose=1)
 #model.learn(total_timesteps=500000)
