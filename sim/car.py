@@ -7,18 +7,24 @@ import numpy as np
 
 class Car:
     def __init__(self, x, y, speed, angle, screen_width, screen_height):
+        # Car positions
         self.x = x
         self.y = y
+        # Car dimensions
+        self.width = 10
+        self.height = 20
+        self.car_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        # Car movement
         self.speed = 0
         self.angle = 0
+        # Screen dimensions
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.spawn_frames = 60
 
     def draw(self, surface):
-        car_surface = pygame.Surface((10, 20), pygame.SRCALPHA)
-        pygame.draw.rect(car_surface, (255, 0, 0), (0, 0, 10, 20))
-        rotated = pygame.transform.rotate(car_surface, -self.angle)
+        pygame.draw.rect(self.car_surface, (255, 0, 0), (0, 0, self.width, self.height))
+        rotated = pygame.transform.rotate(self.car_surface, -self.angle)
         rect = rotated.get_rect(center=(self.x, self.y))
         surface.blit(rotated, rect)
 
@@ -42,12 +48,11 @@ class Car:
             if keys[pygame.K_RIGHT]:
                 self.angle += 1
 
-        self.speed = self.speed = max(min(self.speed, 2), -2)
+        self.speed = max(min(self.speed, 2), -2)
 
         self.x -= self.speed * math.cos(math.radians(self.angle + 90))
         self.y -= self.speed * math.sin(math.radians(self.angle + 90))
 
-        
         self.speed = self.speed * 0.95
 
         self.check_and_clamp(track)
@@ -76,21 +81,17 @@ class Car:
             self.speed *= -0.3
 
     def check_collision(self, track):
-        min_dist = float('inf')
-        for i in range(len(track.x) - 1):
-            dx = self.x - track.x[i]
-            dy = self.y - track.y[i]
-            dist = math.sqrt(dx**2 + dy**2)
-            if dist < min_dist:
-                min_dist = dist
-    
+        t = ((self.x - track.x1) * track.dx_seg + (self.y - track.y1) * track.dy_seg) / (track.len_sq)
+        t = np.clip(t, 0, 1)
+
+        closest_x = track.x1 + t * track.dx_seg
+        closest_y = track.y1 + t * track.dy_seg
+        dist_sq = (self.x - closest_x)**2 + (self.y - closest_y)**2
+        min_dist = np.sqrt(np.min(dist_sq))
         return min_dist > track.width
 
     def cast_ray(self, track, angle_offset, max_distance):
         ray_angle = math.radians(self.angle + angle_offset)
-
-    
-    
         dists = np.arange(1, max_distance)
         rx = self.x + dists * math.cos(ray_angle)
         ry = self.y + dists * math.sin(ray_angle)
@@ -101,7 +102,13 @@ class Car:
         for i, (rpx, rpy) in enumerate(zip(rx, ry)):
             diff_x = rpx - cx
             diff_y = rpy - cy
-            min_dist = np.min(np.sqrt(diff_x**2 + diff_y**2))
+            t = (diff_x * track.dx_seg + diff_y * track.dy_seg) / (track.len_sq)
+            t = np.clip(t, 0, 1)
+
+            closest_x = track.x1 + t * track.dx_seg
+            closest_y = track.y1 + t * track.dy_seg
+            dist_sq = (self.x - closest_x)**2 + (self.y - closest_y)**2
+            min_dist = np.sqrt(np.min(dist_sq))
             if min_dist > track.width:
                 return dists[i] / max_distance
         
